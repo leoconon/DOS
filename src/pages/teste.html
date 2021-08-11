@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Integrapass</title>
+</head>
+<body>
+	<button onclick="listen()">Vai</button>
+
+	<script type="text/javascript" src="ggwave.js"></script>
+	<script type="text/javascript">
+
+		window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        window.OfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+
+        var context = null;
+        var recorder = null;
+
+        var ggwave = null;
+        var parameters = null;
+        var instance = null;
+
+        ggwave_factory().then(function(obj) {
+            ggwave = obj;
+        });
+
+  //       setTimeout(() => {
+		// 	init();
+		// 	console.log('vai');
+		// }, 2000);
+
+		// setTimeout(() => {
+		// 	listen();
+		// 	console.log('vai');
+		// }, 4000);
+
+        function init() {
+            if (!context) {
+                context = new AudioContext({sampleRate: 48000});
+
+                parameters = ggwave.getDefaultParameters();
+                parameters.sampleRateInp = context.sampleRate;
+                parameters.sampleRateOut = context.sampleRate;
+                instance = ggwave.init(parameters);
+            }
+        }
+
+        function convertTypedArray(src, type) {
+            var buffer = new ArrayBuffer(src.byteLength);
+            var baseView = new src.constructor(buffer).set(src);
+            return new type(buffer);
+        }
+
+        function listen() {
+        	init();
+
+            let constraints = {
+                audio: {
+                    // not sure if these are necessary to have
+                    echoCancellation: false,
+                    autoGainControl: false,
+                    noiseSuppression: false
+                }
+            };
+
+            navigator.mediaDevices.getUserMedia(constraints).then(function (e) {
+                mediaStream = context.createMediaStreamSource(e);
+
+                var bufferSize = 16*1024;
+                var numberOfInputChannels = 1;
+                var numberOfOutputChannels = 1;
+
+                if (context.createScriptProcessor) {
+                    recorder = context.createScriptProcessor(
+                            bufferSize,
+                            numberOfInputChannels,
+                            numberOfOutputChannels);
+                } else {
+                    recorder = context.createJavaScriptNode(
+                            bufferSize,
+                            numberOfInputChannels,
+                            numberOfOutputChannels);
+                }
+
+                recorder.onaudioprocess = function (e) {
+                    var source = e.inputBuffer;
+                    var res = ggwave.decode(instance, convertTypedArray(new Float32Array(source.getChannelData(0)), Int8Array));
+                    if (res) {
+                        alert('Catraca liberada');
+                    }
+                }
+
+                mediaStream.connect(recorder);
+                recorder.connect(context.destination);
+            }).catch(function (e) {
+                console.error(e);
+            });
+        };
+	</script>
+</body>
+</html>

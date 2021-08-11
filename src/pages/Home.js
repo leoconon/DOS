@@ -7,6 +7,7 @@ import { concat, linspace, normalize } from '../helpers/tools';
 import { WAV } from '../helpers/WAV';
 import { SoundStorage } from '../helpers/soundStorage';
 import { SoundPlayerService } from '../helpers/soundPlayer';
+import { WebView } from 'react-native-webview';
 
 import {
   View,
@@ -14,6 +15,7 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 
 export function Home() {
@@ -26,7 +28,7 @@ export function Home() {
   function encode_base64_to_signal(base64, sample_rate, bloc_duration) {
     const base64_values = Base64.base64_to_array(base64)
 
-    const freqs = linspace(100, 600, 6)
+    const freqs = linspace(100000, 600000, 1000)
     const freq_porteuse = 50
     const amp = 90
 
@@ -81,8 +83,13 @@ export function Home() {
   }
 
   async function handleGenerateAudio() {
-    onConvert();
+    //onConvert();
+    if (inputText) {
+        encode(this.webref.injectJavaScript(`onSend('${inputText}')`));
+    }
   }
+
+  const PolicyHTML = Platform.OS === 'ios' ? require('./teste.html') : {uri: 'file:///android_asset/teste.html'};
 
   return (
     <View style={styles.container}>
@@ -101,6 +108,8 @@ export function Home() {
         onPress={handleGenerateAudio}>
         <Text style={styles.buttonText}>Gerar audio</Text>
       </TouchableOpacity>
+
+      <WebView source={PolicyHTML} style={{flex: 1}} ref={(r) => (this.webref = r)}/>
     </View>
   );
 }
